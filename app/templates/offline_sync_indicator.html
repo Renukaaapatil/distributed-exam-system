@@ -1,0 +1,190 @@
+<!-- Offline Sync Status Indicator -->
+<div id="connectionStatus" class="connection-status online">
+    <i class="bi bi-wifi me-1"></i>
+    Online
+</div>
+
+<style>
+.connection-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.connection-status.online {
+    background-color: #28a745;
+    color: white;
+}
+
+.connection-status.offline {
+    background-color: #dc3545;
+    color: white;
+}
+
+.connection-status.syncing {
+    background-color: #ffc107;
+    color: #212529;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .connection-status {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
+
+/* Offline message banner */
+.offline-message {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #dc3545;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    z-index: 999;
+    display: none;
+}
+
+.offline-message.show {
+    display: block;
+}
+
+/* Sync progress indicator */
+.sync-progress {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+    max-width: 300px;
+}
+
+.sync-progress.show {
+    display: block;
+}
+
+.sync-progress .progress-bar {
+    height: 4px;
+    background-color: #007bff;
+    border-radius: 2px;
+    margin-top: 8px;
+    animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+}
+</style>
+
+<!-- Offline Message Banner -->
+<div id="offlineMessage" class="offline-message">
+    <i class="bi bi-wifi-off me-2"></i>
+    You are currently offline. Your answers will be saved locally and synced when you reconnect.
+</div>
+
+<!-- Sync Progress Indicator -->
+<div id="syncProgress" class="sync-progress">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-arrow-repeat me-2 text-primary"></i>
+        <div>
+            <div class="fw-bold">Syncing...</div>
+            <small class="text-muted">Synchronizing your answers</small>
+        </div>
+    </div>
+    <div class="progress-bar"></div>
+</div>
+
+<script>
+// Connection status indicator functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusElement = document.getElementById('connectionStatus');
+    const offlineMessage = document.getElementById('offlineMessage');
+    const syncProgress = document.getElementById('syncProgress');
+    
+    // Initial status
+    updateConnectionStatus(navigator.onLine);
+    
+    // Listen for connection changes
+    window.addEventListener('online', function() {
+        updateConnectionStatus(true);
+        hideOfflineMessage();
+        showSyncProgress();
+    });
+    
+    window.addEventListener('offline', function() {
+        updateConnectionStatus(false);
+        showOfflineMessage();
+        hideSyncProgress();
+    });
+    
+    function updateConnectionStatus(isOnline) {
+        if (!statusElement) return;
+        
+        statusElement.className = 'connection-status';
+        
+        if (isOnline) {
+            statusElement.classList.add('online');
+            statusElement.innerHTML = '<i class="bi bi-wifi me-1"></i> Online';
+        } else {
+            statusElement.classList.add('offline');
+            statusElement.innerHTML = '<i class="bi bi-wifi-off me-1"></i> Offline';
+        }
+    }
+    
+    function showOfflineMessage() {
+        if (offlineMessage) {
+            offlineMessage.classList.add('show');
+        }
+    }
+    
+    function hideOfflineMessage() {
+        if (offlineMessage) {
+            offlineMessage.classList.remove('show');
+        }
+    }
+    
+    function showSyncProgress() {
+        if (syncProgress) {
+            syncProgress.classList.add('show');
+            // Hide after 3 seconds
+            setTimeout(() => {
+                hideSyncProgress();
+            }, 3000);
+        }
+    }
+    
+    function hideSyncProgress() {
+        if (syncProgress) {
+            syncProgress.classList.remove('show');
+        }
+    }
+});
+</script>

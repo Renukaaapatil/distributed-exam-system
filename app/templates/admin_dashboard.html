@@ -1,0 +1,793 @@
+{% extends "base.html" %}
+
+{% block title %}Live Exam Monitoring Dashboard - Distributed Exam System{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+}
+
+.stat-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.stat-card:hover::before {
+    left: 100%;
+}
+
+/* Color coding for different states */
+.stat-card.safe {
+    border-left: 4px solid #28a745;
+}
+
+.stat-card.warning {
+    border-left: 4px solid #ffc107;
+}
+
+.stat-card.danger {
+    border-left: 4px solid #dc3545;
+}
+
+.stat-card.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.trust-score-badge {
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: bold;
+}
+
+.trust-score-high {
+    background-color: #28a745;
+    color: white;
+}
+
+.trust-score-medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.trust-score-low {
+    background-color: #dc3545;
+    color: white;
+}
+
+.student-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.student-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.node-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.node-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.webcam-snapshot {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.webcam-snapshot:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.webcam-snapshot img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.snapshot-header {
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.8rem;
+}
+
+.snapshot-status {
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-section {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filter-select {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-mode .card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-mode .stat-card,
+.dark-mode .student-card,
+.dark-mode .node-card,
+.dark-mode .webcam-snapshot {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-mode .filter-section {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+.violation-toast {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.progress-container {
+    margin-bottom: 0.5rem;
+}
+
+.trust-score-container {
+    margin-bottom: 1rem;
+}
+
+.student-info {
+    flex: 1;
+}
+
+.student-status {
+    text-align: right;
+}
+
+.card-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.node-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.node-body {
+    padding: 1rem;
+}
+
+.student-count {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.student-count .count {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+}
+
+.student-count .label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.force-actions {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.force-actions .btn {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.live-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: #28a745;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.timestamp {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.dark-mode .timestamp {
+    color: #adb5bd;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .student-card,
+    .node-card,
+    .webcam-snapshot {
+        margin-bottom: 0.75rem;
+    }
+    
+    .force-actions .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+.trust-score-medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.trust-score-low {
+    background-color: #dc3545;
+    color: white;
+}
+
+.alert-item {
+    border-left: 4px solid;
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: #f8f9fa;
+}
+
+.alert-item.critical {
+    border-left-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.alert-item.warning {
+    border-left-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+.alert-item.info {
+    border-left-color: #17a2b8;
+    background-color: #d1ecf1;
+}
+
+.violation-feed {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.snapshot-item {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.snapshot-item img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.snapshot-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.25rem;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.snapshot-violation {
+    border: 2px solid #dc3545;
+}
+
+.session-row {
+    transition: background-color 0.3s ease;
+}
+
+.session-row.high-risk {
+    background-color: #f8d7da !important;
+}
+
+.session-row.high-risk:hover {
+    background-color: #f5c6cb !important;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-online {
+    background-color: #28a745;
+}
+
+.status-offline {
+    background-color: #6c757d;
+}
+
+.node-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: bold;
+}
+
+.refresh-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.violation-type {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.time-ago {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.session-table {
+    font-size: 0.9rem;
+}
+
+.session-table th {
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.trust-score-cell {
+    font-weight: bold;
+}
+
+.last-updated {
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header text-center mb-4">
+        <h1 class="mb-3">
+            <span class="live-indicator"></span>
+            <i class="bi bi-camera-video me-3"></i>
+            Real-time Exam Monitoring Dashboard
+        </h1>
+        <p class="lead mb-0">Intelligent control panel for active exam sessions</p>
+        <div class="d-flex justify-content-center align-items-center gap-3">
+            <small class="timestamp" id="lastUpdated">Last updated: Loading...</small>
+            <button class="btn btn-sm btn-outline-light" id="darkModeToggle">
+                <i class="bi bi-sun-fill"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Force Actions Section -->
+    <div class="force-actions">
+        <h5 class="mb-3">
+            <i class="bi bi-lightning-fill me-2"></i>
+            Force Actions
+        </h5>
+        <div class="d-flex flex-wrap">
+            <button class="btn btn-danger" id="terminateExamBtn">
+                <i class="bi bi-x-circle me-2"></i>
+                Terminate All Exams
+            </button>
+            <button class="btn btn-warning" id="markSuspiciousBtn">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Mark Suspicious
+            </button>
+            <button class="btn btn-info" id="reassignNodeBtn">
+                <i class="bi bi-arrow-left-right me-2"></i>
+                Reassign Node
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <h5 class="mb-3">
+            <i class="bi bi-funnel me-2"></i>
+            Filters
+        </h5>
+        <div class="row">
+            <div class="col-md-3">
+                <label for="nodeFilter" class="form-label">Node</label>
+                <select class="form-select filter-select" id="nodeFilter">
+                    <option value="all">All Nodes</option>
+                    <option value="A">Node A</option>
+                    <option value="B">Node B</option>
+                    <option value="C">Node C</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="statusFilter" class="form-label">Status</label>
+                <select class="form-select filter-select" id="statusFilter">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="suspicious">Suspicious</option>
+                    <option value="cheating">Cheating</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="trustScoreFilter" class="form-label">Trust Score</label>
+                <select class="form-select filter-select" id="trustScoreFilter">
+                    <option value="all">All Scores</option>
+                    <option value="high">High (80-100)</option>
+                    <option value="medium">Medium (50-79)</option>
+                    <option value="low">Low (0-49)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-secondary w-100" onclick="dashboard.applyFilters()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    Reset Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="{{ url_for('main.sessions') }}" class="card stat-card {% if active_sessions > 0 %}safe{% else %}info{% endif %}">
+                <div class="card-body text-center">
+                    <div class="stat-icon {% if active_sessions > 0 %}bg-success{% else %}bg-info{% endif %} text-white mx-auto">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h3 class="card-title">{{ active_sessions }}</h3>
+                    <p class="card-text">Active Sessions</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('main.violations') }}" class="card stat-card {% if violations_count > 5 %}danger{% elif violations_count > 0 %}warning{% else %}safe{% endif %}">
+                <div class="card-body text-center">
+                    <div class="stat-icon {% if violations_count > 5 %}bg-danger{% elif violations_count > 0 %}bg-warning{% else %}bg-success{% endif %} text-white mx-auto">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <h3 class="card-title">{{ violations_count }}</h3>
+                    <p class="card-text">Violations</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('main.trust_scores') }}" class="card stat-card {% if avg_trust_score >= 80 %}safe{% elif avg_trust_score >= 60 %}warning{% else %}danger{% endif %}">
+                <div class="card-body text-center">
+                    <div class="stat-icon {% if avg_trust_score >= 80 %}bg-info{% elif avg_trust_score >= 60 %}bg-warning{% else %}bg-danger{% endif %} text-white mx-auto">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <h3 class="card-title">{{ avg_trust_score }}</h3>
+                    <p class="card-text">Avg Trust Score</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('main.high_risk') }}" class="card stat-card {% if high_risk_students > 3 %}danger{% elif high_risk_students > 0 %}warning{% else %}safe{% endif %}">
+                <div class="card-body text-center">
+                    <div class="stat-icon {% if high_risk_students > 3 %}bg-danger{% elif high_risk_students > 0 %}bg-warning{% else %}bg-success{% endif %} text-white mx-auto">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                    </div>
+                    <h3 class="card-title">{{ high_risk_students }}</h3>
+                    <p class="card-text">High Risk Students</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Student Grid -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-grid-3x3-gap me-2"></i>
+                        Active Students
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <span class="live-indicator me-2"></span>
+                        <span class="text-muted me-3">Live</span>
+                        <small class="timestamp" id="studentCount">0 students</small>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row" id="studentGrid">
+                        <!-- Student cards will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <!-- Node Distribution -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-diagram-3 me-2"></i>
+                        Node Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="nodeDistribution">
+                        <!-- Node cards will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Violations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Recent Violations
+                    </h5>
+                </div>
+                <div class="card-body violation-feed">
+                    <div id="violationsList">
+                        <!-- Violations will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Webcam Snapshots Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-camera me-2"></i>
+                        Live Webcam Snapshots
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <span class="live-indicator me-2"></span>
+                        <span class="text-muted">Auto-updating</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="snapshot-grid" id="webcamGrid">
+                        <!-- Webcam snapshots will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer">
+    <!-- Toast notifications will appear here -->
+</div>
+
+<!-- Hidden CSRF Token -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh every 5 seconds for real-time monitoring
+setInterval(() => {
+    location.reload();
+}, 5000);
+
+// Add live monitoring badge
+document.addEventListener('DOMContentLoaded', function() {
+    const header = document.querySelector('.dashboard-header');
+    if (header) {
+        const badge = document.createElement('div');
+        badge.className = 'position-absolute top-0 end-0 m-3';
+        badge.innerHTML = `
+            <span class="badge bg-success pulse-animation">
+                <i class="bi bi-broadcast me-1"></i>
+                Live Monitoring Active
+            </span>
+        `;
+        badge.style.cssText = 'z-index: 10;';
+        header.style.position = 'relative';
+        header.appendChild(badge);
+    }
+});
+
+// Add pulse animation
+const style = document.createElement('style');
+style.textContent = `
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Update timestamp
+    function updateTimestamp() {
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 
+            'Last updated: ' + now.toLocaleTimeString();
+    }
+    
+    // Update timestamp every second
+    setInterval(updateTimestamp, 1000);
+    updateTimestamp();
+    
+    // Reset filters function
+    window.resetFilters = function() {
+        document.getElementById('nodeFilter').value = 'all';
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('trustScoreFilter').value = 'all';
+        if (window.dashboard) {
+            dashboard.applyFilters();
+        }
+    };
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+D for dark mode toggle
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            const toggle = document.getElementById('darkModeToggle');
+            if (toggle) toggle.click();
+        }
+        
+        // Ctrl+R for manual refresh
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            if (window.dashboard) {
+                window.dashboard.loadInitialData();
+            }
+        }
+    });
+    
+    // Add loading states
+    function showLoading(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>';
+        }
+    }
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

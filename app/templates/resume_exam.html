@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Exam - Distributed Exam System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    Resume Exam
+                </h2>
+                <div>
+                    <span class="badge bg-info">Session Recovery</span>
+                    {% if session %}
+                    <span class="badge bg-success">Node {{ session.node_id }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if session %}
+    <!-- Session Information -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                Session Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Session ID:</strong> {{ session.session_id }}</p>
+                    <p><strong>Exam ID:</strong> {{ session.exam_id }}</p>
+                    <p><strong>Current Node:</strong> Node {{ session.node_id }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if session.status == 'active' else 'secondary' }}">
+                            {{ session.status|title }}
+                        </span>
+                    </p>
+                    <p><strong>Last Saved:</strong> {{ session.last_saved[:19] if session.last_saved else 'Never' }}</p>
+                    <p><strong>Questions Answered:</strong> {{ session.answers|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Summary -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-graph-up me-2"></i>
+                Progress Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h4 class="text-primary">{{ session.current_question_index + 1 }}</h4>
+                    <p class="text-muted">Current Question</p>
+                </div>
+                <div class="col-md-4">
+                    <h4 class="text-success">{{ session.answers|length }}</h4>
+                    <p class="text-muted">Questions Answered</p>
+                </div>
+                <div class="col-md-4">
+                    <h4 class="text-info">{{ "%.0f"|format(session.remaining_time / 60) }} min</h4>
+                    <p class="text-muted">Time Remaining</p>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mt-3">
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ (session.answers|length / total_questions * 100) if total_questions else 0 }}%">
+                        {{ "%.1f"|format((session.answers|length / total_questions * 100) if total_questions else 0) }}% Complete
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recovery Actions -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Recovery Options
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Session Recovery</strong><br>
+                Your exam session has been restored from the last save point. All your answers and progress have been recovered.
+            </div>
+            
+            <div class="d-flex gap-3">
+                <button onclick="resumeExam()" class="btn btn-success btn-lg">
+                    <i class="bi bi-play-circle me-2"></i>
+                    Resume Exam
+                </button>
+                <button onclick="viewAnswers()" class="btn btn-outline-primary">
+                    <i class="bi bi-eye me-2"></i>
+                    Review Answers
+                </button>
+                <button onclick="cancelSession()" class="btn btn-outline-danger">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Cancel Session
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answer Preview (Hidden by default) -->
+    <div class="card mb-4" id="answerPreview" style="display: none;">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-list-check me-2"></i>
+                Saved Answers Preview
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Your Answer</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for question_id, answer in session.answers.items() %}
+                        <tr>
+                            <td>Question {{ question_id }}</td>
+                            <td>
+                                {% if answer is string %}
+                                    {{ answer }}
+                                {% else %}
+                                    Option {{ answer }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-success">Answered</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Session Found -->
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Session Not Found
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                <strong>No Active Session Found</strong><br>
+                The session ID you provided is not valid or the session has expired.
+            </div>
+            
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('main.exams') }}" class="btn btn-primary">
+                    <i class="bi bi-list me-2"></i>
+                    View Available Exams
+                </a>
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                    <i class="bi bi-house me-2"></i>
+                    Return to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Hidden session data for JavaScript -->
+{% if session %}
+<script type="application/json" id="sessionData">
+{
+    "session_id": "{{ session.session_id }}",
+    "exam_id": "{{ session.exam_id }}",
+    "node_id": "{{ session.node_id }}",
+    "current_question_index": {{ session.current_question_index }},
+    "answers": {{ session.answers|tojson }},
+    "remaining_time": {{ session.remaining_time }},
+    "status": "{{ session.status }}",
+    "last_saved": "{{ session.last_saved }}"
+}
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Session recovery functionality
+{% if session %}
+const sessionData = JSON.parse(document.getElementById('sessionData').textContent);
+
+function resumeExam() {
+    console.log('Resuming exam session...');
+    
+    // Show loading message
+    showLoadingMessage('Resuming your exam session...');
+    
+    // Redirect to exam page with session data
+    const examUrl = `/exam/{{ session.exam_id }}?session_id={{ session.session_id }}&resume=true`;
+    
+    // Store session data in localStorage for the exam page
+    localStorage.setItem('resumedSession', JSON.stringify(sessionData));
+    
+    // Redirect to exam
+    window.location.href = examUrl;
+}
+
+function viewAnswers() {
+    const preview = document.getElementById('answerPreview');
+    
+    if (preview.style.display === 'none') {
+        preview.style.display = 'block';
+        document.querySelector('button[onclick="viewAnswers()"]').innerHTML = 
+            '<i class="bi bi-eye-slash me-2"></i>Hide Answers';
+    } else {
+        preview.style.display = 'none';
+        document.querySelector('button[onclick="viewAnswers()"]').innerHTML = 
+            '<i class="bi bi-eye me-2"></i>Review Answers';
+    }
+}
+
+function cancelSession() {
+    if (confirm('Are you sure you want to cancel this exam session? Your progress will be lost.')) {
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
+    }
+}
+
+function showLoadingMessage(message) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'alert alert-info position-fixed';
+    loadingDiv.style.cssText = 'top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1050;';
+    loadingDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            ${message}
+        </div>
+    `;
+    
+    document.body.appendChild(loadingDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (loadingDiv.parentNode) {
+            loadingDiv.parentNode.removeChild(loadingDiv);
+        }
+    }, 5000);
+}
+
+// Auto-save status indicator
+function updateAutoSaveStatus(status) {
+    const statusElement = document.createElement('div');
+    statusElement.className = `alert alert-${status.type} alert-dismissible fade show position-fixed`;
+    statusElement.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 300px;';
+    statusElement.innerHTML = `
+        <strong>${status.title}</strong><br>
+        ${status.message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(statusElement);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (statusElement.parentNode) {
+            statusElement.parentNode.removeChild(statusElement);
+        }
+    }, 3000);
+}
+
+// Check for auto-save status updates
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'autosave_status') {
+        updateAutoSaveStatus(event.data);
+    }
+});
+
+// Show recovery success message
+window.addEventListener('load', function() {
+    updateAutoSaveStatus({
+        type: 'success',
+        title: 'Session Restored',
+        message: 'Your exam session has been successfully restored.'
+    });
+});
+{% else %}
+// No session found - redirect to exams after delay
+setTimeout(function() {
+    window.location.href = '/exams';
+}, 5000);
+{% endif %}
+</script>
+
+<style>
+.answer-restored {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.autosave-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1050;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.status-saved {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-saving {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+</style>
+{% endblock %}

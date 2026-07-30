@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Question{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil me-2"></i>Edit Question
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="editQuestionForm">
+                        {{ form.csrf_token }}
+                        
+                        <!-- Question Text -->
+                        <div class="mb-4">
+                            <label for="text" class="form-label fw-bold">
+                                <i class="bi bi-chat-text me-1"></i>Question Text
+                            </label>
+                            <textarea name="text" id="text" class="form-control" rows="3" required>{{ question.text }}</textarea>
+                            <div class="form-text">The question that will be displayed to students</div>
+                        </div>
+
+                        <!-- Exam Selection -->
+                        <div class="mb-4">
+                            <label for="exam_id" class="form-label fw-bold">
+                                <i class="bi bi-book me-1"></i>Select Exam
+                            </label>
+                            <select name="exam_id" id="exam_id" class="form-select" required>
+                                {% for exam in exams %}
+                                <option value="{{ exam.id }}" {% if exam.id == question.exam_id %}selected{% endif %}>
+                                    {{ exam.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Select which exam this question belongs to</div>
+                        </div>
+
+                        <!-- Multiple Choice Options -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-list-check me-1"></i>Answer Options
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="option1" class="form-label">
+                                        <span class="badge bg-success me-1">A</span>Option A
+                                        {% if question.correct_answer == 1 %}
+                                        <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" name="option1" id="option1" class="form-control" required
+                                           value="{{ question.option1 }}" placeholder="First option">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="option2" class="form-label">
+                                        <span class="badge bg-success me-1">B</span>Option B
+                                        {% if question.correct_answer == 2 %}
+                                        <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" name="option2" id="option2" class="form-control" required
+                                           value="{{ question.option2 }}" placeholder="Second option">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="option3" class="form-label">
+                                        <span class="badge bg-success me-1">C</span>Option C
+                                        {% if question.correct_answer == 3 %}
+                                        <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" name="option3" id="option3" class="form-control" required
+                                           value="{{ question.option3 }}" placeholder="Third option">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="option4" class="form-label">
+                                        <span class="badge bg-success me-1">D</span>Option D
+                                        {% if question.correct_answer == 4 %}
+                                        <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" name="option4" id="option4" class="form-control" required
+                                           value="{{ question.option4 }}" placeholder="Fourth option">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Correct Answer -->
+                        <div class="mb-4">
+                            <label for="correct_answer" class="form-label fw-bold">
+                                <i class="bi bi-check-circle me-1"></i>Correct Answer
+                            </label>
+                            <select name="correct_answer" id="correct_answer" class="form-select" required>
+                                <option value="">Select correct answer...</option>
+                                <option value="1" {% if question.correct_answer == 1 %}selected{% endif %}>
+                                    A - {{ question.option1[:30] }}
+                                </option>
+                                <option value="2" {% if question.correct_answer == 2 %}selected{% endif %}>
+                                    B - {{ question.option2[:30] }}
+                                </option>
+                                <option value="3" {% if question.correct_answer == 3 %}selected{% endif %}>
+                                    C - {{ question.option3[:30] }}
+                                </option>
+                                <option value="4" {% if question.correct_answer == 4 %}selected{% endif %}>
+                                    D - {{ question.option4[:30] }}
+                                </option>
+                            </select>
+                            <div class="form-text">Select which option is the correct answer</div>
+                        </div>
+
+                        <!-- Question Info -->
+                        <div class="mb-4">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-info-circle me-1"></i>Question Information
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Created:</strong><br>
+                                        <small>{{ question.created_at.strftime('%Y-%m-%d %H:%M') if question.created_at else 'N/A' }}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Last Updated:</strong><br>
+                                        <small>{{ question.updated_at.strftime('%Y-%m-%d %H:%M') if question.updated_at else 'N/A' }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-check-circle me-1"></i>Update Question
+                            </button>
+                            <a href="{{ url_for('main.questions') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                            <button type="button" onclick="duplicateQuestion()" class="btn btn-outline-info">
+                                <i class="bi bi-files me-1"></i>Duplicate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Real-time preview
+function updatePreview() {
+    const text = document.getElementById('text').value;
+    const option1 = document.getElementById('option1').value;
+    const option2 = document.getElementById('option2').value;
+    const option3 = document.getElementById('option3').value;
+    const option4 = document.getElementById('option4').value;
+    
+    document.getElementById('previewText').textContent = text || 'Your question will appear here...';
+    document.getElementById('previewOption1').textContent = option1 || 'Option A';
+    document.getElementById('previewOption2').textContent = option2 || 'Option B';
+    document.getElementById('previewOption3').textContent = option3 || 'Option C';
+    document.getElementById('previewOption4').textContent = option4 || 'Option D';
+}
+
+// Duplicate question functionality
+function duplicateQuestion() {
+    if (confirm('Create a duplicate of this question?')) {
+        const form = document.getElementById('editQuestionForm');
+        const formData = new FormData(form);
+        
+        // Change the form action to create new question
+        form.action = '/questions/create';
+        
+        // Add a suffix to question text to indicate it's a duplicate
+        const textInput = document.getElementById('text');
+        textInput.value = textInput.value + ' (Copy)';
+        
+        // Submit the form
+        form.submit();
+    }
+}
+
+// Form validation
+document.getElementById('editQuestionForm').addEventListener('submit', function(e) {
+    const option1 = document.getElementById('option1').value.trim();
+    const option2 = document.getElementById('option2').value.trim();
+    const option3 = document.getElementById('option3').value.trim();
+    const option4 = document.getElementById('option4').value.trim();
+    const correctAnswer = document.getElementById('correct_answer').value;
+    
+    // Check if all options are filled
+    if (!option1 || !option2 || !option3 || !option4) {
+        e.preventDefault();
+        alert('Please fill in all four options');
+        return;
+    }
+    
+    // Check if options are unique
+    const options = [option1, option2, option3, option4];
+    const uniqueOptions = [...new Set(options)];
+    if (options.length !== uniqueOptions.length) {
+        e.preventDefault();
+        alert('All options must be unique');
+        return;
+    }
+    
+    // Check if correct answer is selected
+    if (!correctAnswer) {
+        e.preventDefault();
+        alert('Please select the correct answer');
+        return;
+    }
+});
+
+// Add event listeners for real-time updates
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = ['text', 'option1', 'option2', 'option3', 'option4'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePreview);
+    });
+    
+    // Update correct answer options when form fields change
+    const optionInputs = ['option1', 'option2', 'option3', 'option4'];
+    optionInputs.forEach((id, index) => {
+        document.getElementById(id).addEventListener('input', function() {
+            const select = document.getElementById('correct_answer');
+            const option = select.options[index + 1];
+            option.text = `${String.fromCharCode(65 + index)} - ${document.getElementById(id).value.substring(0, 30)}`;
+        });
+    });
+});
+</script>
+
+<style>
+.preview-question {
+    font-weight: 600;
+    color: #495057;
+}
+
+.preview-options {
+    margin-top: 0.5rem;
+}
+
+.preview-option {
+    margin-bottom: 0.25rem;
+    padding: 0.25rem 0;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    border-left: 3px solid #dee2e6;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.form-label {
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+}
+
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.alert-heading {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}

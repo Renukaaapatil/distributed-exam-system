@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Active Sessions - Distributed Exam System{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+}
+
+.session-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.session-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.trust-score-badge {
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: bold;
+}
+
+.trust-score-high {
+    background-color: #28a745;
+    color: white;
+}
+
+.trust-score-medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.trust-score-low {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status-badge {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 1rem;
+}
+
+.status-active {
+    background-color: #28a745;
+    color: white;
+}
+
+.duration-text {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+}
+
+.exam-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.back-link {
+    color: white;
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    text-decoration: none;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0">
+                        <i class="bi bi-people-fill me-3"></i>
+                        Active Exam Sessions
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">
+                        Real-time monitoring of ongoing exam sessions
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{{ url_for('main.dashboard') }}" class="back-link">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card session-card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon bg-success text-white mx-auto mb-3">
+                            <i class="bi bi-play-circle-fill"></i>
+                        </div>
+                        <h3 class="card-title">{{ sessions|length }}</h3>
+                        <p class="card-text">Active Sessions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card session-card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon bg-info text-white mx-auto mb-3">
+                            <i class="bi bi-clock-fill"></i>
+                        </div>
+                        <h3 class="card-title">
+                            {% if sessions and sessions|length > 0 %}
+                                {% if sessions[0][0].started_at %}
+                                    {{ sessions[0][0].started_at.strftime('%H:%M:%S') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h3>
+                        <p class="card-text">Latest Start</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card session-card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon bg-warning text-white mx-auto mb-3">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+                        <h3 class="card-title">
+                            {% if sessions %}
+                                {% set scores = sessions|map(attribute='0')|map(attribute='trust_score')|list %}
+                                {% set valid_scores = scores|select('defined')|list %}
+                                {% if valid_scores %}
+                                    {{ (valid_scores|sum / valid_scores|length)|round(1) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h3>
+                        <p class="card-text">Avg Trust Score</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card session-card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon bg-danger text-white mx-auto mb-3">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <h3 class="card-title">
+                            {% if sessions %}
+                                {{ sessions|selectattr('0.trust_score', 'lt', 40)|list|length }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </h3>
+                        <p class="card-text">Low Trust (<40)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>
+                    Active Sessions Details
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Exam</th>
+                                    <th>Started At</th>
+                                    <th>Duration</th>
+                                    <th>Trust Score</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session, user, exam in sessions %}
+                                    <tr>
+                                        <td>
+                                            <div class="student-info">
+                                                <div class="student-avatar">
+                                                    {{ user.name[0].upper() if user.name else 'U' }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ user.name or 'Unknown' }}</div>
+                                                    <div class="text-muted small">{{ user.email or 'N/A' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="exam-title">{{ exam.title or 'Unknown Exam' }}</div>
+                                            <div class="text-muted small">{{ exam.subject or 'No Subject' }}</div>
+                                        </td>
+                                        <td>
+                                            {{ session.started_at.strftime('%Y-%m-%d %H:%M:%S') if session.started_at else 'N/A' }}
+                                        </td>
+                                        <td>
+                                            <span class="duration-text">
+                                                {% if session.started_at %}
+                                                    {% set duration = now() - session.started_at %}
+                                                    {% if duration.days > 0 %}
+                                                        {{ duration.days }}d {{ duration.seconds // 3600 }}h
+                                                    {% else %}
+                                                        {{ duration.seconds // 3600 }}h {{ (duration.seconds % 3600) // 60 }}m
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if session.trust_score is not none %}
+                                                {% if session.trust_score >= 80 %}
+                                                    <span class="trust-score-badge trust-score-high">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% elif session.trust_score >= 60 %}
+                                                    <span class="trust-score-badge trust-score-medium">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="trust-score-badge trust-score-low">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-active">
+                                                <i class="bi bi-circle-fill me-1"></i>
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="viewSessionDetails('{{ session.id }}')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" 
+                                                        onclick="terminateSession('{{ session.id }}', '{{ user.name }}')">
+                                                    <i class="bi bi-stop-circle"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="text-muted">No Active Sessions</h5>
+                        <p class="text-muted">There are currently no active exam sessions.</p>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Go to Dashboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewSessionDetails(sessionId) {
+    // Implementation for viewing session details
+    console.log('Viewing session:', sessionId);
+    // You can implement a modal or redirect to a details page
+}
+
+function terminateSession(sessionId, studentName) {
+    if (confirm(`Are you sure you want to terminate the session for ${studentName}?`)) {
+        // Implementation for terminating session
+        console.log('Terminating session:', sessionId);
+        // You can implement an API call to terminate the session
+    }
+}
+
+// Auto-refresh every 30 seconds
+setTimeout(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

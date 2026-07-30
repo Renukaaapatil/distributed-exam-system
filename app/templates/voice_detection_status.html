@@ -1,0 +1,419 @@
+<!-- Voice Detection Status Indicator -->
+<div id="voiceDetectionPanel" class="voice-detection-panel">
+    <div class="voice-status-header">
+        <i class="bi bi-mic me-2"></i>
+        Voice Detection
+    </div>
+    
+    <div class="voice-status-container">
+        <div id="voiceStatus" class="voice-status text-muted">
+            <i class="bi bi-mic-mute me-1"></i>
+            Initializing...
+        </div>
+        
+        <div id="voiceVolume" class="voice-volume">
+            Volume: 0%
+        </div>
+        
+        <div class="voice-controls">
+            <button id="voiceToggleBtn" class="btn btn-sm btn-outline-primary" onclick="toggleVoiceDetection()">
+                <i class="bi bi-play-fill me-1"></i>
+                Start
+            </button>
+        </div>
+    </div>
+    
+    <div class="voice-settings">
+        <div class="setting-item">
+            <label for="volumeThreshold">Sensitivity:</label>
+            <input type="range" id="volumeThreshold" min="0.01" max="0.5" step="0.01" value="0.1" 
+                   onchange="updateVoiceThreshold(this.value)">
+            <span id="thresholdValue">0.1</span>
+        </div>
+        
+        <div class="setting-item">
+            <label for="talkingDuration">Talking Duration:</label>
+            <select id="talkingDuration" onchange="updateTalkingDuration(this.value)">
+                <option value="1000">1 second</option>
+                <option value="2000" selected>2 seconds</option>
+                <option value="3000">3 seconds</option>
+                <option value="5000">5 seconds</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="voice-stats">
+        <div class="stat-item">
+            <span class="stat-label">Violations:</span>
+            <span id="violationCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Status:</span>
+            <span id="detectionStatus" class="stat-value">Ready</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.voice-detection-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 250px;
+    max-width: 300px;
+    font-size: 14px;
+}
+
+.voice-status-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.voice-status-container {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.voice-status {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.voice-status.text-success {
+    color: #28a745;
+}
+
+.voice-status.text-warning {
+    color: #ffc107;
+}
+
+.voice-status.text-danger {
+    color: #dc3545;
+}
+
+.voice-status.text-muted {
+    color: #6c757d;
+}
+
+.voice-volume {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.voice-controls {
+    margin-top: 0.5rem;
+}
+
+.voice-settings {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.setting-item {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.setting-item label {
+    font-size: 12px;
+    color: #495057;
+    margin-bottom: 0;
+    min-width: 100px;
+}
+
+.setting-item input[type="range"] {
+    flex: 1;
+    margin: 0 0.5rem;
+}
+
+.setting-item select {
+    font-size: 12px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.voice-stats {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.stat-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .voice-detection-panel {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+        min-width: auto;
+    }
+}
+
+/* Animation for talking detection */
+.voice-status.text-warning {
+    animation: pulse-warning 1s infinite;
+}
+
+@keyframes pulse-warning {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Violation alert styling */
+.voice-status.text-danger {
+    animation: pulse-danger 0.5s 3;
+}
+
+@keyframes pulse-danger {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Volume indicator bar */
+.volume-indicator {
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.volume-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 100%);
+    width: 0%;
+    transition: width 0.1s ease;
+}
+
+/* Microphone permission dialog */
+.microphone-permission-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.microphone-permission-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    max-width: 400px;
+    text-align: center;
+}
+
+.microphone-permission-content h5 {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.microphone-permission-content p {
+    margin-bottom: 1.5rem;
+    color: #6c757d;
+}
+</style>
+
+<script>
+// Voice detection UI controls
+let voiceDetectionActive = false;
+
+function toggleVoiceDetection() {
+    const btn = document.getElementById('voiceToggleBtn');
+    
+    if (!voiceDetectionActive) {
+        // Start voice detection
+        if (window.voiceDetection) {
+            window.voiceDetection.startListening().then(success => {
+                if (success) {
+                    voiceDetectionActive = true;
+                    btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i>Stop';
+                    btn.className = 'btn btn-sm btn-outline-danger';
+                    updateDetectionStatus('Active');
+                } else {
+                    showMicrophonePermissionDialog();
+                }
+            });
+        }
+    } else {
+        // Stop voice detection
+        if (window.voiceDetection) {
+            window.voiceDetection.stopListening();
+            voiceDetectionActive = false;
+            btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Start';
+            btn.className = 'btn btn-sm btn-outline-primary';
+            updateDetectionStatus('Stopped');
+        }
+    }
+}
+
+function updateVoiceThreshold(value) {
+    document.getElementById('thresholdValue').textContent = value;
+    if (window.voiceDetection) {
+        window.voiceDetection.setThreshold(parseFloat(value));
+    }
+}
+
+function updateTalkingDuration(value) {
+    if (window.voiceDetection) {
+        window.voiceDetection.setTalkingDuration(parseInt(value));
+    }
+}
+
+function updateDetectionStatus(status) {
+    document.getElementById('detectionStatus').textContent = status;
+}
+
+function updateViolationCount(count) {
+    document.getElementById('violationCount').textContent = count;
+}
+
+function showMicrophonePermissionDialog() {
+    // Create permission dialog
+    const dialog = document.createElement('div');
+    dialog.className = 'microphone-permission-dialog';
+    dialog.innerHTML = `
+        <div class="microphone-permission-content">
+            <h5>
+                <i class="bi bi-mic me-2"></i>
+                Microphone Access Required
+            </h5>
+            <p>
+                Voice detection requires microphone access to monitor for talking during the exam.
+                Please allow microphone access when prompted by your browser.
+            </p>
+            <button class="btn btn-primary" onclick="this.closest('.microphone-permission-dialog').remove()">
+                I Understand
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (dialog.parentNode) {
+            dialog.parentNode.removeChild(dialog);
+        }
+    }, 10000);
+}
+
+// Update volume indicator
+function updateVolumeIndicator(volume) {
+    const volumeElement = document.getElementById('voiceVolume');
+    if (volumeElement) {
+        const percentage = Math.round(volume * 100);
+        volumeElement.textContent = `Volume: ${percentage}%`;
+        
+        // Update volume bar if it exists
+        let volumeBar = document.getElementById('volumeBar');
+        if (!volumeBar) {
+            volumeBar = document.createElement('div');
+            volumeBar.id = 'volumeBar';
+            volumeBar.className = 'volume-bar';
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'volume-indicator';
+            indicator.appendChild(volumeBar);
+            volumeElement.parentNode.insertBefore(indicator, volumeElement.nextSibling);
+        }
+        
+        volumeBar.style.width = `${Math.min(percentage, 100)}%`;
+    }
+}
+
+// Enhanced status updates with volume indicator
+document.addEventListener('DOMContentLoaded', function() {
+    // Override the updateVoiceStatus function to include volume indicator
+    const originalUpdateVoiceStatus = window.updateVoiceStatus;
+    window.updateVoiceStatus = function(status, volume) {
+        originalUpdateVoiceStatus(status, volume);
+        
+        if (volume !== null) {
+            updateVolumeIndicator(volume);
+        }
+        
+        // Update violation count
+        if (window.voiceDetection) {
+            const statusData = window.voiceDetection.getStatus();
+            updateViolationCount(statusData.violationCount);
+        }
+    };
+});
+
+// Keyboard shortcuts for voice detection
+document.addEventListener('keydown', function(e) {
+    // Ctrl+Shift+V to toggle voice detection
+    if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+        e.preventDefault();
+        toggleVoiceDetection();
+    }
+    
+    // Ctrl+Shift+R to reset violations
+    if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (window.voiceDetection) {
+            window.voiceDetection.resetViolations();
+            updateViolationCount(0);
+            showNotification('Voice violations reset', 'info');
+        }
+    }
+});
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 80px; left: 20px; z-index: 1050; max-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+</script>

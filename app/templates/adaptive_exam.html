@@ -1,0 +1,694 @@
+{% extends "base.html" %}
+
+{% block title %}Adaptive Exam - {{ exam.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.adaptive-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.difficulty-indicator {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: bold;
+    margin: 0 0.5rem;
+}
+
+.difficulty-easy {
+    background-color: #28a745;
+    color: white;
+}
+
+.difficulty-medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.difficulty-hard {
+    background-color: #dc3545;
+    color: white;
+}
+
+.question-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    margin-bottom: 2rem;
+}
+
+.question-card:hover {
+    transform: translateY(-5px);
+}
+
+.option-card {
+    border: 2px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.option-card:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.option-card.selected {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.option-card.correct {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.option-card.incorrect {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.option-letter {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.score-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.progress-info {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.difficulty-history {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.difficulty-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #6c757d;
+}
+
+.difficulty-dot.easy {
+    background-color: #28a745;
+}
+
+.difficulty-dot.medium {
+    background-color: #ffc107;
+}
+
+.difficulty-dot.hard {
+    background-color: #dc3545;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.answer-feedback {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+.feedback-correct {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.feedback-incorrect {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.exam-complete {
+    text-align: center;
+    padding: 3rem;
+}
+
+.exam-complete h2 {
+    color: #28a745;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Adaptive Exam Header -->
+    <div class="adaptive-header">
+        <h1 class="mb-3">
+            <i class="bi bi-lightbulb me-3"></i>
+            Adaptive Exam
+        </h1>
+        <p class="lead mb-2">{{ exam.title }}</p>
+        <div class="d-flex justify-content-center align-items-center flex-wrap">
+            <span class="difficulty-indicator difficulty-{{ current_difficulty|lower }}" id="difficultyIndicator">
+                {{ difficulty_name }}
+            </span>
+            <span class="score-display" id="scoreDisplay">Score: 0</span>
+        </div>
+    </div>
+
+    <!-- Progress Information -->
+    <div class="progress-info">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Question:</strong> <span id="questionIndex">1</span> / {{ total_questions }}
+            </div>
+            <div class="col-md-4">
+                <strong>Correct:</strong> <span id="correctCount">0</span>
+            </div>
+            <div class="col-md-4">
+                <strong>Accuracy:</strong> <span id="accuracyDisplay">0%</span>
+            </div>
+        </div>
+        <div class="mt-2">
+            <strong>Difficulty Path:</strong>
+            <div class="difficulty-history" id="difficultyHistory">
+                <div class="difficulty-dot medium"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="card question-card" id="questionCard">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">
+                    Question <span id="currentQuestionNumber">1</span>
+                </h5>
+                <div>
+                    <span class="badge bg-secondary">Points: <span id="questionPoints">2</span></span>
+                    <span class="difficulty-indicator difficulty-{{ current_difficulty|lower }} ms-2" id="currentDifficulty">
+                        {{ difficulty_name }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="question-text" id="questionText">
+                {{ first_question.text }}
+            </div>
+            
+            <div class="options-container" id="optionsContainer">
+                {% for option_letter, option_text in first_question.options.items() %}
+                <div class="option-card" data-option="{{ option_letter }}" onclick="selectOption('{{ option_letter }}')">
+                    <div class="d-flex align-items-center">
+                        <span class="option-letter">{{ option_letter }}</span>
+                        <span class="option-text">{{ option_text }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn btn-primary btn-lg" id="submitBtn" onclick="submitAnswer()" disabled>
+                    <i class="bi bi-check-circle me-2"></i>
+                    Submit Answer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answer Feedback -->
+    <div id="answerFeedback" style="display: none;"></div>
+
+    <!-- Next Question Button -->
+    <div class="text-center" id="nextQuestionContainer" style="display: none;">
+        <button class="btn btn-success btn-lg" onclick="loadNextQuestion()">
+            <i class="bi bi-arrow-right me-2"></i>
+            Next Question
+        </button>
+    </div>
+
+    <!-- Exam Complete -->
+    <div class="exam-complete" id="examComplete" style="display: none;">
+        <h2>
+            <i class="bi bi-trophy me-3"></i>
+            Exam Complete!
+        </h2>
+        
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="finalScore">0</div>
+                    <div class="stat-label">Final Score</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="finalAccuracy">0%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalQuestionsAnswered">0</div>
+                    <div class="stat-label">Questions</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="correctAnswersCount">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Difficulty Progression</h5>
+            <div class="difficulty-history" id="finalDifficultyHistory" style="font-size: 1.2rem; justify-content: center;">
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="/dashboard" class="btn btn-primary">
+                <i class="bi bi-house me-2"></i>
+                Return to Dashboard
+            </a>
+            <button class="btn btn-outline-primary ms-2" onclick="viewDetailedResults()">
+                <i class="bi bi-graph-up me-2"></i>
+                View Detailed Results
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="firstQuestionData">
+{{ first_question|tojson }}
+</script>
+
+<script>
+// Adaptive Exam JavaScript
+let currentQuestion = null;
+let selectedOption = null;
+let isSubmitting = false;
+
+// Load initial question data
+document.addEventListener('DOMContentLoaded', function() {
+    const questionDataElement = document.getElementById('firstQuestionData');
+    if (questionDataElement) {
+        currentQuestion = JSON.parse(questionDataElement.textContent);
+    }
+    console.log('Adaptive exam initialized');
+    updateDifficultyHistory();
+});
+
+function selectOption(optionLetter) {
+    if (isSubmitting) return;
+    
+    // Remove previous selection
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selection to clicked option
+    const selectedCard = document.querySelector(`[data-option="${optionLetter}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+        selectedOption = optionLetter;
+        
+        // Enable submit button
+        document.getElementById('submitBtn').disabled = false;
+    }
+}
+
+function submitAnswer() {
+    if (isSubmitting || !selectedOption) return;
+    
+    isSubmitting = true;
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<div class="loading-spinner me-2"></div>Submitting...';
+    submitBtn.disabled = true;
+    
+    // Disable all options
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.style.pointerEvents = 'none';
+    });
+    
+    // Submit answer
+    fetch('/adaptive/submit_answer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+            question_id: currentQuestion.id,
+            selected_answer: selectedOption
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            handleAnswerResponse(data);
+        } else {
+            throw new Error(data.error || 'Failed to submit answer');
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting answer:', error);
+        alert('Error submitting answer: ' + error.message);
+        
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        isSubmitting = false;
+        
+        // Re-enable options
+        document.querySelectorAll('.option-card').forEach(card => {
+            card.style.pointerEvents = 'auto';
+        });
+    });
+}
+
+function handleAnswerResponse(data) {
+    // Show answer feedback
+    showAnswerFeedback(data.is_correct, data.points_earned);
+    
+    // Highlight correct/incorrect answers
+    highlightAnswers(data.is_correct);
+    
+    // Update score and progress
+    updateScore(data.current_score);
+    updateProgress(data.question_index, data.correct_answers);
+    updateDifficulty(data.current_difficulty, data.difficulty_name);
+    updateDifficultyHistory();
+    
+    // Show next question button or complete exam
+    const submitBtn = document.getElementById('submitBtn');
+    const nextContainer = document.getElementById('nextQuestionContainer');
+    
+    if (data.has_next_question && data.next_question) {
+        // Store next question
+        currentQuestion = data.next_question;
+        
+        // Show next question button
+        submitBtn.style.display = 'none';
+        nextContainer.style.display = 'block';
+    } else {
+        // Complete exam
+        setTimeout(() => {
+            completeExam();
+        }, 2000);
+    }
+}
+
+function showAnswerFeedback(isCorrect, pointsEarned) {
+    const feedbackDiv = document.getElementById('answerFeedback');
+    
+    if (isCorrect) {
+        feedbackDiv.className = 'answer-feedback feedback-correct';
+        feedbackDiv.innerHTML = `
+            <i class="bi bi-check-circle me-2"></i>
+            Correct! You earned ${pointsEarned} points.
+        `;
+    } else {
+        feedbackDiv.className = 'answer-feedback feedback-incorrect';
+        feedbackDiv.innerHTML = `
+            <i class="bi bi-x-circle me-2"></i>
+            Incorrect. Keep trying!
+        `;
+    }
+    
+    feedbackDiv.style.display = 'block';
+}
+
+function highlightAnswers(isCorrect) {
+    const selectedCard = document.querySelector(`[data-option="${selectedOption}"]`);
+    
+    if (isCorrect) {
+        selectedCard.classList.add('correct');
+    } else {
+        selectedCard.classList.add('incorrect');
+        
+        // Highlight correct answer
+        const correctOption = currentQuestion.options[currentQuestion.correct_answer || 'A'];
+        document.querySelectorAll('.option-card').forEach(card => {
+            const optionLetter = card.dataset.option;
+            const optionText = card.querySelector('.option-text').textContent;
+            
+            if (optionText === correctOption) {
+                card.classList.add('correct');
+            }
+        });
+    }
+}
+
+function updateScore(score) {
+    document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+}
+
+function updateProgress(questionIndex, correctCount) {
+    document.getElementById('questionIndex').textContent = questionIndex;
+    document.getElementById('correctCount').textContent = correctCount;
+    
+    const accuracy = questionIndex > 0 ? Math.round((correctCount / questionIndex) * 100) : 0;
+    document.getElementById('accuracyDisplay').textContent = `${accuracy}%`;
+    document.getElementById('currentQuestionNumber').textContent = questionIndex + 1;
+}
+
+function updateDifficulty(difficulty, difficultyName) {
+    const indicator = document.getElementById('difficultyIndicator');
+    const currentDiff = document.getElementById('currentDifficulty');
+    
+    // Remove all difficulty classes
+    indicator.className = 'difficulty-indicator';
+    currentDiff.className = 'difficulty-indicator';
+    
+    // Add new difficulty class
+    const difficultyClass = `difficulty-${difficultyName.toLowerCase()}`;
+    indicator.classList.add(difficultyClass);
+    currentDiff.classList.add(difficultyClass);
+    
+    // Update text
+    indicator.textContent = difficultyName;
+    currentDiff.textContent = difficultyName;
+}
+
+function updateDifficultyHistory() {
+    const historyContainer = document.getElementById('difficultyHistory');
+    
+    fetch('/adaptive/session_state')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.session_state.difficulty_history) {
+                const history = data.session_state.difficulty_history;
+                historyContainer.innerHTML = '';
+                
+                history.forEach(difficulty => {
+                    const dot = document.createElement('div');
+                    dot.className = 'difficulty-dot';
+                    
+                    if (difficulty === 1) dot.classList.add('easy');
+                    else if (difficulty === 2) dot.classList.add('medium');
+                    else if (difficulty === 3) dot.classList.add('hard');
+                    
+                    historyContainer.appendChild(dot);
+                });
+            }
+        })
+        .catch(error => console.error('Error updating difficulty history:', error));
+}
+
+function loadNextQuestion() {
+    if (!currentQuestion) return;
+    
+    // Hide next button and show submit button
+    document.getElementById('nextQuestionContainer').style.display = 'none';
+    document.getElementById('submitBtn').style.display = 'inline-block';
+    
+    // Hide feedback
+    document.getElementById('answerFeedback').style.display = 'none';
+    
+    // Reset question display
+    displayQuestion(currentQuestion);
+    
+    // Reset selection
+    selectedOption = null;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>Submit Answer';
+    
+    // Re-enable options
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.style.pointerEvents = 'auto';
+        card.classList.remove('selected', 'correct', 'incorrect');
+    });
+    
+    isSubmitting = false;
+}
+
+function displayQuestion(question) {
+    document.getElementById('questionText').textContent = question.text;
+    document.getElementById('questionPoints').textContent = question.score_weight || 2;
+    
+    // Update options
+    const optionsContainer = document.getElementById('optionsContainer');
+    optionsContainer.innerHTML = '';
+    
+    Object.entries(question.options).forEach(([letter, text]) => {
+        const optionCard = document.createElement('div');
+        optionCard.className = 'option-card';
+        optionCard.dataset.option = letter;
+        optionCard.onclick = () => selectOption(letter);
+        
+        optionCard.innerHTML = `
+            <div class="d-flex align-items-center">
+                <span class="option-letter">${letter}</span>
+                <span class="option-text">${text}</span>
+            </div>
+        `;
+        
+        optionsContainer.appendChild(optionCard);
+    });
+}
+
+function completeExam() {
+    fetch('/adaptive/end_exam', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showExamResults(data);
+        } else {
+            throw new Error(data.error || 'Failed to complete exam');
+        }
+    })
+    .catch(error => {
+        console.error('Error completing exam:', error);
+        alert('Error completing exam: ' + error.message);
+    });
+}
+
+function showExamResults(results) {
+    // Hide question card
+    document.getElementById('questionCard').style.display = 'none';
+    document.getElementById('answerFeedback').style.display = 'none';
+    document.getElementById('nextQuestionContainer').style.display = 'none';
+    
+    // Show results
+    const completeDiv = document.getElementById('examComplete');
+    completeDiv.style.display = 'block';
+    
+    // Update statistics
+    document.getElementById('finalScore').textContent = results.score;
+    document.getElementById('finalAccuracy').textContent = `${results.accuracy}%`;
+    document.getElementById('totalQuestionsAnswered').textContent = results.total_questions;
+    document.getElementById('correctAnswersCount').textContent = results.correct_answers;
+    
+    // Show difficulty progression
+    const historyContainer = document.getElementById('finalDifficultyHistory');
+    historyContainer.innerHTML = '';
+    
+    results.difficulty_history.forEach(difficulty => {
+        const dot = document.createElement('div');
+        dot.className = 'difficulty-dot';
+        
+        if (difficulty === 1) dot.classList.add('easy');
+        else if (difficulty === 2) dot.classList.add('medium');
+        else if (difficulty === 3) dot.classList.add('hard');
+        
+        historyContainer.appendChild(dot);
+    });
+    
+    console.log('Exam completed with results:', results);
+}
+
+function viewDetailedResults() {
+    // This could open a modal or navigate to a detailed results page
+    alert('Detailed results view would be implemented here');
+}
+
+function getCSRFToken() {
+    const token = document.querySelector('input[name="csrf_token"], meta[name="csrf-token"]');
+    return token ? token.value || token.getAttribute('content') : '';
+}
+
+// Handle page refresh - get current state
+window.addEventListener('load', function() {
+    fetch('/adaptive/session_state')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const state = data.session_state;
+                updateScore(state.score);
+                updateProgress(state.question_index, state.correct_answers);
+                updateDifficulty(state.current_difficulty, state.difficulty_name);
+            }
+        })
+        .catch(error => console.error('Error loading session state:', error));
+});
+</script>
+{% endblock %}

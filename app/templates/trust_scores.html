@@ -1,0 +1,501 @@
+{% extends "base.html" %}
+
+{% block title %}Trust Scores - Distributed Exam System{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+}
+
+.trust-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.trust-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.trust-score-badge {
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: bold;
+}
+
+.trust-excellent {
+    background-color: #28a745;
+    color: white;
+}
+
+.trust-good {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.trust-average {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.trust-poor {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.trust-critical {
+    background-color: #dc3545;
+    color: white;
+}
+
+.trust-progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.trust-progress-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+}
+
+.exam-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.back-link {
+    color: white;
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    text-decoration: none;
+    color: white;
+}
+
+.session-timestamp {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #17a2b8;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.filter-section {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.score-distribution {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.score-range {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.range-90-100 {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.range-80-89 {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.range-70-79 {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.range-60-69 {
+    background-color: #ffeaa7;
+    color: #856404;
+}
+
+.range-50-59 {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.range-below-50 {
+    background-color: #f5c6cb;
+    color: #721c24;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0">
+                        <i class="bi bi-speedometer2 me-3"></i>
+                        Trust Scores Analysis
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">
+                        Comprehensive view of all student trust scores
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{{ url_for('main.dashboard') }}" class="back-link">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Score Distribution -->
+        <div class="filter-section">
+            <h5 class="mb-3">
+                <i class="bi bi-bar-chart me-2"></i>
+                Score Distribution
+            </h5>
+            <div class="score-distribution">
+                <div class="score-range range-90-100">
+                    90-100: {{ trust_scores|selectattr('0.trust_score', 'gte', 90)|list|length }}
+                </div>
+                <div class="score-range range-80-89">
+                    80-89: {{ trust_scores|selectattr('0.trust_score', 'gte', 80)|selectattr('0.trust_score', 'lt', 90)|list|length }}
+                </div>
+                <div class="score-range range-70-79">
+                    70-79: {{ trust_scores|selectattr('0.trust_score', 'gte', 70)|selectattr('0.trust_score', 'lt', 80)|list|length }}
+                </div>
+                <div class="score-range range-60-69">
+                    60-69: {{ trust_scores|selectattr('0.trust_score', 'gte', 60)|selectattr('0.trust_score', 'lt', 70)|list|length }}
+                </div>
+                <div class="score-range range-50-59">
+                    50-59: {{ trust_scores|selectattr('0.trust_score', 'gte', 50)|selectattr('0.trust_score', 'lt', 60)|list|length }}
+                </div>
+                <div class="score-range range-below-50">
+                    <50: {{ trust_scores|selectattr('0.trust_score', 'lt', 50)|list|length }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ trust_scores|length }}</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {% if trust_scores %}
+                        {% set total_score = 0 %}
+                        {% set count = 0 %}
+                        {% for session, user, exam in trust_scores %}
+                            {% if session.trust_score is not none %}
+                                {% set total_score = total_score + session.trust_score %}
+                                {% set count = count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if count > 0 %}
+                            {{ (total_score / count)|round(1) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {% if trust_scores %}
+                        {% set max_score = 0 %}
+                        {% for session, user, exam in trust_scores %}
+                            {% if session.trust_score is not none and session.trust_score > max_score %}
+                                {% set max_score = session.trust_score %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if max_score > 0 %}
+                            {{ max_score }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Highest Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {% if trust_scores %}
+                        {% set min_score = 100 %}
+                        {% set found_score = false %}
+                        {% for session, user, exam in trust_scores %}
+                            {% if session.trust_score is not none and session.trust_score < min_score %}
+                                {% set min_score = session.trust_score %}
+                                {% set found_score = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if found_score %}
+                            {{ min_score }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Lowest Score</div>
+            </div>
+        </div>
+
+        <!-- Trust Scores Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>
+                    All Trust Scores
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if trust_scores %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Exam</th>
+                                    <th>Trust Score</th>
+                                    <th>Progress</th>
+                                    <th>Session Started</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session, user, exam in trust_scores %}
+                                    <tr class="trust-card">
+                                        <td>
+                                            <div class="student-info">
+                                                <div class="student-avatar">
+                                                    {{ user.name[0].upper() if user.name else 'U' }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ user.name or 'Unknown' }}</div>
+                                                    <div class="text-muted small">{{ user.email or 'N/A' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="exam-title">{{ exam.title or 'Unknown Exam' }}</div>
+                                            <div class="text-muted small">{{ exam.subject or 'No Subject' }}</div>
+                                        </td>
+                                        <td>
+                                            {% if session.trust_score is not none %}
+                                                {% if session.trust_score >= 90 %}
+                                                    <span class="trust-score-badge trust-excellent">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% elif session.trust_score >= 80 %}
+                                                    <span class="trust-score-badge trust-good">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% elif session.trust_score >= 70 %}
+                                                    <span class="trust-score-badge trust-average">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% elif session.trust_score >= 50 %}
+                                                    <span class="trust-score-badge trust-poor">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="trust-score-badge trust-critical">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if session.trust_score is not none %}
+                                                <div class="trust-progress">
+                                                    <div class="trust-progress-bar" 
+                                                         style="width: {{ session.trust_score }}%; 
+                                                         background-color: {% if session.trust_score >= 90 %}#28a745{% elif session.trust_score >= 80 %}#17a2b8{% elif session.trust_score >= 70 %}#ffc107{% elif session.trust_score >= 50 %}#fd7e14{% else %}#dc3545{% endif %};">
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="session-timestamp">
+                                                {{ session.started_at.strftime('%Y-%m-%d %H:%M:%S') if session.started_at else 'N/A' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">
+                                                {% if session.started_at %}
+                                                    {% set duration = now() - session.started_at %}
+                                                    {% if duration.days > 0 %}
+                                                        {{ duration.days }}d {{ duration.seconds // 3600 }}h
+                                                    {% else %}
+                                                        {{ duration.seconds // 3600 }}h {{ (duration.seconds % 3600) // 60 }}m
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="viewSessionDetails('{{ session.id }}')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                {% if session.trust_score is not none and session.trust_score < 40 %}
+                                                    <button class="btn btn-sm btn-outline-warning" 
+                                                            onclick="flagStudent('{{ user.id }}', '{{ user.name }}')">
+                                                        <i class="bi bi-flag"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-speedometer2 text-muted" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="text-muted">No Trust Scores Available</h5>
+                        <p class="text-muted">No trust score data is available at this time.</p>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Go to Dashboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewSessionDetails(sessionId) {
+    // Implementation for viewing session details
+    console.log('Viewing session:', sessionId);
+    // You can implement a modal with full session details
+}
+
+function flagStudent(userId, studentName) {
+    if (confirm(`Are you sure you want to flag ${studentName} for review?`)) {
+        // Implementation for flagging student
+        console.log('Flagging student:', userId);
+        // You can implement an API call to flag the student
+    }
+}
+
+// Auto-refresh every 30 seconds
+setTimeout(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

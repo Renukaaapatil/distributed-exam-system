@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}High Risk Students - Distributed Exam System{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+}
+
+.risk-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    border-left: 4px solid #dc3545;
+}
+
+.risk-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.trust-score-badge {
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: bold;
+    background-color: #dc3545;
+    color: white;
+}
+
+.risk-level-badge {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 1rem;
+    font-weight: bold;
+}
+
+.risk-critical {
+    background-color: #dc3545;
+    color: white;
+}
+
+.risk-high {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.risk-medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+}
+
+.exam-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.alert-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    display: inline-block;
+    animation: pulse 2s infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.back-link {
+    color: white;
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    text-decoration: none;
+    color: white;
+}
+
+.session-timestamp {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.warning-box {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 1px solid #ffeaa7;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.warning-box h5 {
+    color: #856404;
+    margin-bottom: 0.5rem;
+}
+
+.warning-box p {
+    color: #856404;
+    margin-bottom: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #dc3545;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-3"></i>
+                        High Risk Students
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">
+                        Students requiring immediate attention (Trust Score < 40)
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{{ url_for('main.dashboard') }}" class="back-link">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Warning Box -->
+        <div class="warning-box">
+            <h5>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Attention Required
+            </h5>
+            <p>
+                The following students have trust scores below 40 and may require immediate intervention. 
+                Please review their sessions and take appropriate action.
+            </p>
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ high_risk_students|length }}</div>
+                <div class="stat-label">High Risk Students</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {% if high_risk_students %}
+                        {% set scores = high_risk_students|map(attribute='0')|map(attribute='trust_score')|list %}
+                        {{ (scores|sum / scores|length)|round(1) if scores else 'N/A' }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Average Trust Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {% if high_risk_students %}
+                        {{ high_risk_students|selectattr('0.trust_score', 'lt', 20)|list|length }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </div>
+                <div class="stat-label">Critical (< 20)</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">
+                    {{ high_risk_students|selectattr('0.trust_score', 'gte', 30)|selectattr('0.trust_score', 'lt', 40)|list|length }}
+                </div>
+                <div class="stat-label">Moderate Risk (30-39)</div>
+            </div>
+        </div>
+
+        <!-- High Risk Students Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-x-fill me-2"></i>
+                    High Risk Students List
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if high_risk_students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Exam</th>
+                                    <th>Trust Score</th>
+                                    <th>Session Started</th>
+                                    <th>Duration</th>
+                                    <th>Risk Level</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session, user, exam in high_risk_students %}
+                                    <tr class="risk-card">
+                                        <td>
+                                            <div class="student-info">
+                                                <div class="student-avatar">
+                                                    {{ user.name[0].upper() if user.name else 'U' }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">
+                                                        <span class="alert-indicator"></span>
+                                                        {{ user.name or 'Unknown' }}
+                                                    </div>
+                                                    <div class="text-muted small">{{ user.email or 'N/A' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="exam-title">{{ exam.title or 'Unknown Exam' }}</div>
+                                            <div class="text-muted small">{{ exam.subject or 'No Subject' }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="trust-score-badge">
+                                                {{ session.trust_score or 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="session-timestamp">
+                                                {{ session.started_at.strftime('%Y-%m-%d %H:%M:%S') if session.started_at else 'N/A' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">
+                                                {% if session.started_at %}
+                                                    {% set duration = now() - session.started_at %}
+                                                    {% if duration.days > 0 %}
+                                                        {{ duration.days }}d {{ duration.seconds // 3600 }}h
+                                                    {% else %}
+                                                        {{ duration.seconds // 3600 }}h {{ (duration.seconds % 3600) // 60 }}m
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if session.trust_score is not none %}
+                                                {% if session.trust_score < 20 %}
+                                                    <span class="risk-level-badge risk-critical">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                        Critical
+                                                    </span>
+                                                {% elif session.trust_score < 30 %}
+                                                    <span class="risk-level-badge risk-high">
+                                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                                        High
+                                                    </span>
+                                                {% else %}
+                                                    <span class="risk-level-badge risk-medium">
+                                                        <i class="bi bi-info-circle me-1"></i>
+                                                        Medium
+                                                    </span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        onclick="terminateSession('{{ session.id }}', '{{ user.name }}')">
+                                                    <i class="bi bi-stop-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="viewSessionDetails('{{ session.id }}')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" 
+                                                        onclick="contactStudent('{{ user.id }}', '{{ user.name }}')">
+                                                    <i class="bi bi-envelope"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-shield-check text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="text-success">No High Risk Students</h5>
+                        <p class="text-muted">All students have acceptable trust scores.</p>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-success">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Go to Dashboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function terminateSession(sessionId, studentName) {
+    if (confirm(`Are you sure you want to terminate ${studentName}'s session immediately? This action cannot be undone.`)) {
+        // Implementation for terminating session
+        console.log('Terminating session:', sessionId);
+        // You can implement an API call to terminate the session
+        alert('Session terminated successfully.');
+        location.reload();
+    }
+}
+
+function viewSessionDetails(sessionId) {
+    // Implementation for viewing session details
+    console.log('Viewing session:', sessionId);
+    // You can implement a modal with full session details
+}
+
+function contactStudent(userId, studentName) {
+    // Implementation for contacting student
+    console.log('Contacting student:', userId);
+    // You can implement an email or notification system
+    alert(`Contact notification sent to ${studentName}.`);
+}
+
+// Auto-refresh every 30 seconds
+setTimeout(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Take Exam - {{ exam.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.exam-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.question-card {
+    margin-bottom: 2rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.question-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.question-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.question-body {
+    padding: 1.5rem;
+}
+
+.option-label {
+    display: block;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.option-label:hover {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+.option-label.selected {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+}
+
+.option-label input[type="radio"] {
+    margin-right: 0.75rem;
+}
+
+.timer-container {
+    position: sticky;
+    top: 20px;
+    z-index: 100;
+}
+
+.timer-display {
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.timer-normal {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.timer-warning {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+    color: white;
+}
+
+.timer-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.progress-container {
+    margin-bottom: 2rem;
+}
+
+.progress {
+    height: 25px;
+    border-radius: 12px;
+    overflow: visible;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 12px;
+    transition: width 0.5s ease;
+}
+
+.submit-section {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.submit-btn {
+    padding: 1rem 3rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.webcam-container {
+    position: relative;
+    background-color: #000;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.webcam-container video,
+.webcam-container canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    background: #000;
+}
+
+.webcam-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.webcam-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.voice-level-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.voice-level-bar-container {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.voice-level-bar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    border-radius: 4px;
+}
+
+.voice-inactive {
+    background-color: #28a745;
+}
+
+.voice-active {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+}
+
+.trust-score-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.trust-score-badge {
+    font-size: 0.9rem;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+.trust-excellent {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.trust-good {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.trust-average {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.trust-poor {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.trust-critical {
+    background-color: #f5c6cb;
+    color: #721c24;
+    animation: pulse 1s infinite;
+}
+
+.webcam-placeholder {
+    padding: 2rem;
+    text-align: center;
+    color: #6c757d;
+    background-color: #000;
+    border-radius: 8px;
+}
+
+.webcam-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.webcam-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exam-container">
+    <!-- Exam Header -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">{{ exam.title }}</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Total Questions:</strong> {{ questions|length }}</p>
+                    <p class="mb-0"><strong>Duration:</strong> {{ exam.duration }} minutes</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Student:</strong> {{ current_user.name }}</p>
+                    <p class="mb-0"><strong>Email:</strong> {{ current_user.email }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Progress</span>
+                    <span id="progressText">0/{{ questions|length }} answered</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Questions Form -->
+            <form method="POST" action="{{ url_for('main.submit_exam') }}" id="examForm" onsubmit="return handleSubmit(event)">
+                <input type="hidden" name="exam_id" value="{{ exam.id }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                {% for question in questions %}
+                <div class="question-card">
+                    <div class="question-header">
+                        <h5 class="mb-0">Question {{ loop.index }}</h5>
+                    </div>
+                    <div class="question-body">
+                        <p class="lead mb-4">{{ question.text }}</p>
+                        
+                        <div class="options">
+                            <label class="option-label">
+                                <input type="radio" name="question_{{ question.id }}" value="1" required onchange="updateProgress()">
+                                <span class="option-text">A) {{ question.option1 }}</span>
+                            </label>
+                            
+                            <label class="option-label">
+                                <input type="radio" name="question_{{ question.id }}" value="2" required onchange="updateProgress()">
+                                <span class="option-text">B) {{ question.option2 }}</span>
+                            </label>
+                            
+                            <label class="option-label">
+                                <input type="radio" name="question_{{ question.id }}" value="3" required onchange="updateProgress()">
+                                <span class="option-text">C) {{ question.option3 }}</span>
+                            </label>
+                            
+                            <label class="option-label">
+                                <input type="radio" name="question_{{ question.id }}" value="4" required onchange="updateProgress()">
+                                <span class="option-text">D) {{ question.option4 }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <p class="mb-3 text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Please review your answers before submitting. You cannot change your answers after submission.
+                    </p>
+                    <button type="submit" class="btn btn-success submit-btn" id="submitBtn">
+                        <i class="bi bi-check-circle me-2"></i>Submit Exam
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            {% if enable_proctoring %}
+            <!-- Timer -->
+            <div class="timer-container">
+                <div class="timer-display timer-normal" id="timer">
+                    30:00
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-clock me-2"></i>
+                    Time remaining
+                </div>
+            </div>
+
+            <!-- Proctoring Panel -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="bi bi-shield-check me-2"></i>Proctoring Active
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="webcam-container" id="webcamContainer">
+                        <video id="webcam" autoplay playsinline muted width="100%" height="auto" style="display: none;"></video>
+                        <canvas id="webcamCanvas" style="display: none;"></canvas>
+                        <div id="webcamPlaceholder" class="webcam-placeholder">
+                            <i class="bi bi-camera-video-off" style="font-size: 2rem;"></i>
+                            <p class="placeholder-text mb-0 mt-2">Initializing camera...</p>
+                        </div>
+                        <div class="webcam-overlay">
+                            <div id="webcamStatus" class="webcam-status">
+                                <i class="bi bi-camera-video-off me-1"></i>
+                                Initializing...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Detection -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-mic me-2"></i>Voice Detection
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="voice-level-container">
+                        <span>Voice Level:</span>
+                        <div class="voice-level-bar-container">
+                            <div id="voiceLevelIndicator" class="voice-level-bar voice-inactive"></div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" id="voiceStatus">Monitoring...</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trust Score -->
+            <div class="card mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-speedometer2 me-2"></i>Trust Score
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="trust-score-display">
+                        <small class="text-muted">Current Score:</small>
+                        <span id="trustScoreDisplay" class="trust-score-badge trust-excellent">100</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- MediaPipe Face Mesh -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+{% if enable_proctoring %}
+<script src="{{ url_for('static', filename='js/webcam_fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/proctoring.js') }}"></script>
+<script src="{{ url_for('static', filename='js/voice_detection.js') }}"></script>
+{% endif %}
+<script>
+// Simple JavaScript without complex event handling
+let timeLeft = 30 * 60; // 30 minutes
+let timerInterval;
+let totalQuestions = {{ questions|length }};
+let isSubmitting = false;
+
+// Template variables
+const enableProctoring = {{ enable_proctoring|tojson }};
+const examId = {{ exam.id|tojson }};
+
+function updateTimer() {
+    const timerElement = document.getElementById('timer');
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        timerElement.textContent = 'Time\'s up!';
+        timerElement.className = 'timer-display timer-danger';
+        
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Time Expired';
+        }
+        
+        setTimeout(() => {
+            if (confirm('Time is up! Your exam will be submitted automatically.')) {
+                document.getElementById('examForm').submit();
+            }
+        }, 1000);
+    } else {
+        timeLeft--;
+        
+        // Change timer color based on time remaining
+        if (timeLeft <= 300) { // 5 minutes
+            timerElement.className = 'timer-display timer-danger';
+        } else if (timeLeft <= 600) { // 10 minutes
+            timerElement.className = 'timer-display timer-warning';
+        }
+    }
+}
+
+function updateProgress() {
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    const progress = (answered / totalQuestions) * 100;
+    
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${answered}/${totalQuestions} answered`;
+    }
+    
+    // Update selected option styling
+    const optionLabels = document.querySelectorAll('.option-label');
+    optionLabels.forEach(label => {
+        label.classList.remove('selected');
+    });
+    
+    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+    checkedRadios.forEach(radio => {
+        radio.closest('.option-label').classList.add('selected');
+    });
+}
+
+function handleSubmit(event) {
+    console.log('Form submission started');
+    
+    // Prevent default to handle validation
+    event.preventDefault();
+    
+    if (isSubmitting) {
+        console.log('Already submitting, ignoring');
+        return false;
+    }
+    
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    const unanswered = totalQuestions - answered;
+    
+    if (unanswered > 0) {
+        if (!confirm(`You have ${unanswered} unanswered questions. Are you sure you want to submit?`)) {
+            console.log('User cancelled submission');
+            return false;
+        }
+    }
+    
+    if (!confirm('Are you sure you want to submit your exam? You cannot change your answers after submission.')) {
+        console.log('User cancelled final confirmation');
+        return false;
+    }
+    
+    // Set submitting flag
+    isSubmitting = true;
+    
+    // Disable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+    }
+    
+    // Stop proctoring systems
+    if (window.aiProctor) {
+        try {
+            window.aiProctor.stopSession();
+        } catch (error) {
+            console.error('Error stopping proctoring:', error);
+        }
+    }
+    
+    if (window.voiceDetection) {
+        try {
+            window.voiceDetection.stopListening();
+        } catch (error) {
+            console.error('Error stopping voice detection:', error);
+        }
+    }
+    
+    if (window.webcamSystem) {
+        try {
+            window.webcamSystem.stop();
+        } catch (error) {
+            console.error('Error stopping webcam:', error);
+        }
+    }
+    
+    console.log('Submitting form');
+    
+    // Submit the form
+    document.getElementById('examForm').submit();
+    
+    return false;
+}
+
+// Initialize everything when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Exam page loaded');
+    
+    // Start timer
+    timerInterval = setInterval(updateTimer, 1000);
+    
+    // Initialize progress
+    updateProgress();
+    
+    // Add beforeunload protection
+    window.addEventListener('beforeunload', function(e) {
+        if (isSubmitting) {
+            return;
+        }
+        
+        const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+        
+        if (answered > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    });
+    
+    console.log('Event handlers attached');
+});
+</script>
+{% endblock %}

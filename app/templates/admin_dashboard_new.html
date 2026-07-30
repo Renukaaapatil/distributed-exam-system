@@ -1,0 +1,913 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Distributed Exam System{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+}
+
+.stat-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.trust-score-badge {
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+}
+
+.alert-item {
+    border-left: 4px solid;
+    margin-bottom: 0.5rem;
+}
+
+.alert-item.critical {
+    border-left-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.alert-item.high {
+    border-left-color: #fd7e14;
+    background-color: #fff3cd;
+}
+
+.alert-item.medium {
+    border-left-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+.alert-item.low {
+    border-left-color: #20c997;
+    background-color: #d1ecf1;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.exam-progress-ring {
+    width: 60px;
+    height: 60px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.live-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #28a745;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+.tab-content {
+    padding-top: 1rem;
+}
+
+.nav-tabs .nav-link {
+    border-radius: 0.5rem 0.5rem 0 0;
+    border: none;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    margin-right: 0.25rem;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.quick-action-card {
+    border: 2px dashed #dee2e6;
+    border-radius: 1rem;
+    text-align: center;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.quick-action-card:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9ff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="mb-2">
+                    <i class="bi bi-speedometer2 me-3"></i>
+                    Admin Dashboard
+                </h1>
+                <p class="mb-0 opacity-75">
+                    Monitor exams, students, and system performance in real-time
+                </p>
+            </div>
+            <div class="col-auto">
+                <div class="text-end">
+                    <div class="d-flex align-items-center">
+                        <span class="live-indicator me-2"></span>
+                        <span class="me-3">Live</span>
+                        <span class="badge bg-white text-dark me-2">Admin</span>
+                        <span class="text-white-50">{{ current_user.username }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-white bg-opacity-25 mx-auto">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h3 class="mb-1">{{ users_count if users_count is defined else '0' }}</h3>
+                    <p class="mb-0">Total Students</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-white bg-opacity-25 mx-auto">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                    </div>
+                    <h3 class="mb-1">{{ exams_count if exams_count is defined else '0' }}</h3>
+                    <p class="mb-0">Active Exams</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-white bg-opacity-25 mx-auto">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        {% if attempts %}
+                            {{ "%.1f"|format((attempts | selectattr('score') | map(attribute='score') | sum / attempts | length)) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h3>
+                    <p class="mb-0">Average Score</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-white bg-opacity-25 mx-auto">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <h3 class="mb-1">{{ active_alerts if active_alerts is defined else '0' }}</h3>
+                    <p class="mb-0">Active Alerts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                        <i class="bi bi-grid-3x3-gap me-2"></i>Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
+                        <i class="bi bi-people me-2"></i>Students
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="proctoring-tab" data-bs-toggle="tab" data-bs-target="#proctoring" type="button" role="tab">
+                        <i class="bi bi-shield-check me-2"></i>Proctoring
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts" type="button" role="tab">
+                        <i class="bi bi-bell me-2"></i>Alerts
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab">
+                        <i class="bi bi-bar-chart me-2"></i>Results
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="dashboardTabContent">
+                <!-- Overview Tab -->
+                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                    <div class="row">
+                        <!-- Quick Actions -->
+                        <div class="col-lg-8 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-lightning-fill me-2"></i>Quick Actions
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="quick-action-card" onclick="window.location.href='{{ url_for('main.create_exam') }}'">
+                                                <i class="bi bi-plus-circle fs-1 text-primary mb-3"></i>
+                                                <h6>Create Exam</h6>
+                                                <p class="text-muted small mb-0">Add a new examination</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="quick-action-card" onclick="window.location.href='{{ url_for('main.exams') }}'">
+                                                <i class="bi bi-list-check fs-1 text-success mb-3"></i>
+                                                <h6>Manage Exams</h6>
+                                                <p class="text-muted small mb-0">View and edit exams</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="quick-action-card" onclick="window.location.href='{{ url_for('main.users') }}'">
+                                                <i class="bi bi-person-plus fs-1 text-info mb-3"></i>
+                                                <h6>Add Students</h6>
+                                                <p class="text-muted small mb-0">Register new students</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- System Status -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-cpu me-2"></i>System Status
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span>Database</span>
+                                        <span class="badge bg-success">Connected</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span>Distributed Nodes</span>
+                                        <span class="badge bg-success">3 Active</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span>AI Proctoring</span>
+                                        <span class="badge bg-success">Online</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Storage</span>
+                                        <span class="badge bg-info">78% Used</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-graph-up me-2"></i>Exam Performance Trend
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="performanceChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-pie-chart me-2"></i>Score Distribution
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="distributionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-clock-history me-2"></i>Recent Activity
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        {% if attempts %}
+                                            {% for attempt in attempts[:5] %}
+                                                <div class="d-flex align-items-start mb-3">
+                                                    <div class="me-3">
+                                                        <div class="student-avatar">
+                                                            {{ attempt.user.username[0].upper() }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">{{ attempt.user.username }} completed an exam</h6>
+                                                        <p class="text-muted mb-1">
+                                                            Score: {{ attempt.score }}/{{ attempt.total_questions }} 
+                                                            ({{ "%.0f"|format((attempt.score / attempt.total_questions * 100)) }}%)
+                                                        </p>
+                                                        <small class="text-muted">
+                                                            {{ attempt.started_at.strftime('%Y-%m-%d %H:%M') if attempt.started_at else 'N/A' }}
+                                                        </small>
+                                                    </div>
+                                                    <div>
+                                                        <span class="badge bg-{{ 'success' if attempt.score >= (attempt.total_questions * 0.8) else 'warning' if attempt.score >= (attempt.total_questions * 0.6) else 'danger' }}">
+                                                            {{ 'Excellent' if attempt.score >= (attempt.total_questions * 0.8) else 'Good' if attempt.score >= (attempt.total_questions * 0.6) else 'Needs Improvement' }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <p class="text-muted text-center">No recent activity</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Students Tab -->
+                <div class="tab-pane fade" id="students" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-people me-2"></i>Student Management
+                            </h5>
+                            <div>
+                                <input type="text" class="form-control form-control-sm" placeholder="Search students..." id="studentSearch" style="width: 200px;">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="studentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Email</th>
+                                            <th>Exams Taken</th>
+                                            <th>Average Score</th>
+                                            <th>Last Activity</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for student in students %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="student-avatar me-3">
+                                                            {{ student.username[0].upper() }}
+                                                        </div>
+                                                        <div>
+                                                            <strong>{{ student.username }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">{{ student.role }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>{{ student.email }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        {{ student.responses|length if student.responses else 0 }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% set student_attempts = student.responses %}
+                                                    {% if student_attempts %}
+                                                        {% set avg_score = (student_attempts | selectattr('score') | map(attribute='score') | sum / student_attempts | length) %}
+                                                        <span class="badge bg-{{ 'success' if avg_score >= 80 else 'warning' if avg_score >= 60 else 'danger' }}">
+                                                            {{ "%.1f"|format(avg_score) }}%
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if student.responses %}
+                                                        {% set last_attempt = student.responses | sort(attribute='started_at') | last %}
+                                                        {{ last_attempt.started_at.strftime('%Y-%m-%d') if last_attempt.started_at else 'N/A' }}
+                                                    {% else %}
+                                                        <span class="text-muted">Never</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-success">Active</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" title="View Details">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-info" title="View Results">
+                                                            <i class="bi bi-graph-up"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Proctoring Tab -->
+                <div class="tab-pane fade" id="proctoring" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Active Sessions</h6>
+                                    <h2 class="text-primary mb-0">{{ active_sessions if active_sessions is defined else 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Avg Trust Score</h6>
+                                    <h2 class="text-success mb-0">{{ avg_trust_score if avg_trust_score is defined else 100 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Violations Today</h6>
+                                    <h2 class="text-warning mb-0">{{ violations_today if violations_today is defined else 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Flagged Students</h6>
+                                    <h2 class="text-danger mb-0">{{ flagged_students if flagged_students is defined else 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-shield-check me-2"></i>Live Proctoring Sessions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Exam</th>
+                                            <th>Trust Score</th>
+                                            <th>Status</th>
+                                            <th>Duration</th>
+                                            <th>Violations</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for session in proctoring_sessions %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="student-avatar me-2">
+                                                            {{ session.user.username[0].upper() }}
+                                                        </div>
+                                                        {{ session.user.username }}
+                                                    </div>
+                                                </td>
+                                                <td>{{ session.exam.title }}</td>
+                                                <td>
+                                                    <span class="trust-score-badge bg-{{ 'success' if session.trust_score >= 80 else 'warning' if session.trust_score >= 60 else 'danger' }} text-white">
+                                                        {{ session.trust_score }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if session.status == 'active' else 'secondary' }}">
+                                                        {{ session.status.title() }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% if session.started_at %}
+                                                        {% set duration = ((current_time - session.started_at).seconds // 60) %}
+                                                        {{ duration }}m
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'danger' if session.violations|length > 5 else 'warning' if session.violations|length > 0 else 'success' }}">
+                                                        {{ session.violations|length }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewProctoringDetails({{ session.id }})">
+                                                        <i class="bi bi-eye"></i> Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Alerts Tab -->
+                <div class="tab-pane fade" id="alerts" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-bell me-2"></i>Proctoring Alerts
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary me-2" onclick="refreshAlerts()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="markAllRead()">
+                                    Mark All Read
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="alertsContainer">
+                                {% for alert in proctoring_alerts %}
+                                    <div class="alert-item {{ alert.severity }} p-3 mb-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    {{ alert.alert_type.replace('_', ' ').title() }}
+                                                </h6>
+                                                <p class="mb-1">{{ alert.message }}</p>
+                                                <small class="text-muted">
+                                                    {{ alert.user.username }} - {{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                                </small>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-{{ 'danger' if alert.severity == 'critical' else 'warning' if alert.severity == 'high' else 'info' }}">
+                                                    {{ alert.severity.title() }}
+                                                </span>
+                                                {% if alert.status == 'unread' %}
+                                                    <span class="badge bg-primary ms-1">New</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Tab -->
+                <div class="tab-pane fade" id="results" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-bar-chart me-2"></i>Exam Results Analysis
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="resultsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-trophy me-2"></i>Top Performers
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    {% set top_students = attempts | sort(attribute='score', reverse=true) %}
+                                    {% for student in top_students[:5] %}
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="student-avatar me-3">
+                                                {{ student.user.username[0].upper() }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0">{{ student.user.username }}</h6>
+                                                <small class="text-muted">{{ "%.0f"|format((student.score / student.total_questions * 100)) }}%</small>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-success">{{ student.score }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-table me-2"></i>All Exam Results
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Exam</th>
+                                            <th>Score</th>
+                                            <th>Percentage</th>
+                                            <th>Date</th>
+                                            <th>Duration</th>
+                                            <th>Trust Score</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attempt in attempts %}
+                                            <tr>
+                                                <td>{{ attempt.user.username }}</td>
+                                                <td>{{ attempt.exam.title }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if attempt.score >= (attempt.total_questions * 0.8) else 'warning' if attempt.score >= (attempt.total_questions * 0.6) else 'danger' }}">
+                                                        {{ attempt.score }}/{{ attempt.total_questions }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar" style="width: {{ (attempt.score / attempt.total_questions * 100) }}%">
+                                                            {{ "%.0f"|format((attempt.score / attempt.total_questions * 100)) }}%
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>{{ attempt.started_at.strftime('%Y-%m-%d') if attempt.started_at else 'N/A' }}</td>
+                                                <td>
+                                                    {% if attempt.submitted_at and attempt.started_at %}
+                                                        {% set duration = (attempt.submitted_at - attempt.started_at).seconds // 60 %}
+                                                        {{ duration }}m
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if attempt.proctoring_session %}
+                                                        <span class="badge bg-{{ 'success' if attempt.proctoring_session.trust_score >= 80 else 'warning' if attempt.proctoring_session.trust_score >= 60 else 'danger' }}">
+                                                            {{ attempt.proctoring_session.trust_score }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewResults({{ attempt.id }})">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Initialize charts when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    setupEventListeners();
+    startLiveUpdates();
+});
+
+function initializeCharts() {
+    // Performance Trend Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(performanceCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Average Score',
+                data: [75, 82, 78, 85, 88, 92, 87],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+    
+    // Score Distribution Chart
+    const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+    new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excellent (90-100%)', 'Good (75-89%)', 'Average (60-74%)', 'Below Average (<60%)'],
+            datasets: [{
+                data: [25, 35, 25, 15],
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Results Analysis Chart
+    const resultsCtx = document.getElementById('resultsChart');
+    if (resultsCtx) {
+        new Chart(resultsCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Exam 1', 'Exam 2', 'Exam 3', 'Exam 4', 'Exam 5'],
+                datasets: [{
+                    label: 'Average Score',
+                    data: [78, 82, 75, 88, 91],
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+}
+
+function setupEventListeners() {
+    // Student search
+    const studentSearch = document.getElementById('studentSearch');
+    if (studentSearch) {
+        studentSearch.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#studentsTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+}
+
+function startLiveUpdates() {
+    // Simulate live updates every 30 seconds
+    setInterval(function() {
+        updateLiveStats();
+    }, 30000);
+}
+
+function updateLiveStats() {
+    // This would normally fetch real-time data from the server
+    console.log('Updating live stats...');
+}
+
+function refreshAlerts() {
+    // Refresh alerts from server
+    location.reload();
+}
+
+function markAllRead() {
+    // Mark all alerts as read
+    const unreadAlerts = document.querySelectorAll('.badge.bg-primary');
+    unreadAlerts.forEach(badge => {
+        badge.remove();
+    });
+}
+
+function viewProctoringDetails(sessionId) {
+    // Open proctoring details modal or navigate to details page
+    console.log('Viewing proctoring details for session:', sessionId);
+}
+
+function viewResults(attemptId) {
+    // Navigate to results page
+    window.location.href = '/results/' + attemptId;
+}
+</script>
+{% endblock %}

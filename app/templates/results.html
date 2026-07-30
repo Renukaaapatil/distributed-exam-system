@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Exam Results - Distributed Exam System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-clipboard-check me-2"></i>
+                Exam Results
+            </h2>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Score Summary -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-trophy me-2"></i>
+            Score Summary
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <h4 class="text-primary">{{ response.score }}/{{ results|length }}</h4>
+                <p class="text-muted">Correct Answers</p>
+            </div>
+            <div class="col-md-4">
+                <h4 class="text-success">{{ "%.1f"|format(percentage) }}%</h4>
+                <p class="text-muted">Percentage</p>
+            </div>
+            <div class="col-md-4">
+                <h4 class="text-info">
+                    <span class="badge bg-{{ 'success' if percentage >= 80 else 'warning' if percentage >= 60 else 'danger' }} fs-6">
+                        {{ 'Excellent' if percentage >= 80 else 'Good' if percentage >= 60 else 'Needs Improvement' }}
+                    </span>
+                </h4>
+                <p class="text-muted">Performance</p>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="mt-3">
+            <div class="progress" style="height: 30px;">
+                <div class="progress-bar bg-{{ 'success' if percentage >= 80 else 'warning' if percentage >= 60 else 'danger' }}" 
+                     role="progressbar" 
+                     data-width="{{ percentage }}">
+                    {{ "%.1f"|format(percentage) }}%
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Results -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-list-check me-2"></i>
+            Detailed Answers
+        </h5>
+    </div>
+    <div class="card-body">
+        {% for result in results_data %}
+            <div class="card mb-3 border-{{ 'success' if result.is_correct else 'danger' }}">
+                <div class="card-header bg-{{ 'success' if result.is_correct else 'danger' }} bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="mb-0">
+                                <span class="badge bg-{{ 'success' if result.is_correct else 'danger' }} me-2">
+                                    {{ loop.index }}
+                                </span>
+                                {{ result.question.question_text }}
+                            </h6>
+                        </div>
+                        <div class="col-auto">
+                            {% if result.is_correct %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i> Correct
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle me-1"></i> Incorrect
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Your Answer:</strong></p>
+                            <div class="alert alert-{{ 'success' if result.is_correct else 'danger' }}">
+                                <strong>{{ result.selected_answer }}.</strong> 
+                                {% if result.selected_answer == 'A' %}{{ result.question.option_a }}
+                                {% elif result.selected_answer == 'B' %}{{ result.question.option_b }}
+                                {% elif result.selected_answer == 'C' %}{{ result.question.option_c }}
+                                {% elif result.selected_answer == 'D' %}{{ result.question.option_d }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Correct Answer:</strong></p>
+                            <div class="alert alert-success">
+                                <strong>{{ result.correct_answer }}.</strong> 
+                                {% if result.correct_answer == 'A' %}{{ result.question.option_a }}
+                                {% elif result.correct_answer == 'B' %}{{ result.question.option_b }}
+                                {% elif result.correct_answer == 'C' %}{{ result.question.option_c }}
+                                {% elif result.correct_answer == 'D' %}{{ result.question.option_d }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- All Options -->
+                    <div class="mt-3">
+                        <p class="mb-2"><strong>All Options:</strong></p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           {% if result.selected_answer == 'A' %}checked{% endif %}
+                                           {% if result.correct_answer == 'A' %}style="accent-color: green;"{% endif %}>
+                                    <label class="form-check-label">
+                                        A. {{ result.question.option_a }}
+                                        {% if result.correct_answer == 'A' %}
+                                            <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           {% if result.selected_answer == 'B' %}checked{% endif %}
+                                           {% if result.correct_answer == 'B' %}style="accent-color: green;"{% endif %}>
+                                    <label class="form-check-label">
+                                        B. {{ result.question.option_b }}
+                                        {% if result.correct_answer == 'B' %}
+                                            <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           {% if result.selected_answer == 'C' %}checked{% endif %}
+                                           {% if result.correct_answer == 'C' %}style="accent-color: green;"{% endif %}>
+                                    <label class="form-check-label">
+                                        C. {{ result.question.option_c }}
+                                        {% if result.correct_answer == 'C' %}
+                                            <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           {% if result.selected_answer == 'D' %}checked{% endif %}
+                                           {% if result.correct_answer == 'D' %}style="accent-color: green;"{% endif %}>
+                                    <label class="form-check-label">
+                                        D. {{ result.question.option_d }}
+                                        {% if result.correct_answer == 'D' %}
+                                            <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Exam Info -->
+<div class="card mt-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <p class="mb-1"><strong>Student:</strong> {{ response.user.username }}</p>
+                <p class="mb-1"><strong>Exam Date:</strong> {{ response.started_at.strftime('%Y-%m-%d %H:%M') if response.started_at else 'N/A' }}</p>
+            </div>
+            <div class="col-md-4">
+                <p class="mb-1"><strong>Completed:</strong> {{ response.submitted_at.strftime('%Y-%m-%d %H:%M') if response.submitted_at else 'N/A' }}</p>
+                <p class="mb-1"><strong>Duration:</strong> 
+                    {% if response.started_at and response.submitted_at %}
+                        {{ ((response.submitted_at - response.started_at).total_seconds() / 60) | round(1) }} minutes
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4">
+                <p class="mb-1"><strong>Total Questions:</strong> {{ results|length }}</p>
+                <p class="mb-1"><strong>Correct:</strong> {{ response.score }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar widths from data attributes
+    const progressBars = document.querySelectorAll('.progress-bar[data-width]');
+    progressBars.forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
+});
+</script>
+{% endblock %}

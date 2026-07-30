@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - Distributed Exam System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-speedometer2 me-2"></i>
+                Student Dashboard
+            </h2>
+            <div>
+                <a href="{{ url_for('main.exams') }}" class="btn btn-primary">
+                    <i class="bi bi-pencil-square me-2"></i> Take New Exam
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-4 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Exams</h6>
+                        <h3 class="mb-0">{{ attempts|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clipboard-data fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Average Score</h6>
+                        <h3 class="mb-0">
+                            {% if attempts %}
+                                {{ "%.1f"|format((attempts | selectattr('score') | map(attribute='score') | sum / attempts | length)) }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-graph-up fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Best Score</h6>
+                        <h3 class="mb-0">
+                            {% if attempts %}
+                                {{ (attempts | selectattr('score') | map(attribute='score') | max) }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-trophy fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Exam History -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>
+            Exam History
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if attempts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Score</th>
+                            <th>Total Questions</th>
+                            <th>Percentage</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in attempts %}
+                            <tr>
+                                <td>{{ attempt.started_at.strftime('%Y-%m-%d %H:%M') if attempt.started_at else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if attempt.score >= 4 else 'warning' if attempt.score >= 2 else 'danger' }}">
+                                        {{ attempt.score }}
+                                    </span>
+                                </td>
+                                <td>{{ attempt.total_questions }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{{ 'success' if attempt.score >= 4 else 'warning' if attempt.score >= 2 else 'danger' }}" 
+                                             role="progressbar" 
+                                             data-width="{{ (attempt.score / attempt.total_questions * 100) }}">
+                                            {{ "%.0f"|format((attempt.score / attempt.total_questions * 100)) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('main.results', attempt_id=attempt.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <h5 class="text-muted mt-3">No Exam Attempts Yet</h5>
+                <p class="text-muted">Start by taking your first exam!</p>
+                <a href="{{ url_for('main.exams') }}" class="btn btn-primary">
+                    <i class="bi bi-pencil-square me-2"></i> Take Exam
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar widths from data attributes
+    const progressBars = document.querySelectorAll('.progress-bar[data-width]');
+    progressBars.forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
+});
+</script>
+{% endblock %}
